@@ -219,10 +219,7 @@ void string_reserve(string self, _UINT_ size) {
         if (!temp) {
             return;
         }
-        self->content = realloc(temp, string_size(self));
-        if (!string_data(self)) {
-            return;
-        }
+        self->content = temp;
         for (_UINT_ i = (string_length(self) + 1); i < string_size(self); ++i) {
             string_replace(self, "\0", i, 1);
         }
@@ -412,7 +409,7 @@ void string_push_back(string self, const char c) {
     else {
         self->size += 2;
         self->content = _MALLOC_(string_data(self), string_size(self),);
-        strncat(string_data(self), buffer, strlen(buffer));
+        strncpy(string_data(self), buffer, strlen(buffer));
     }
 }
 /**
@@ -512,58 +509,18 @@ void string_swap(string dst, string src) {
     if (!string_status(dst) && !string_status(src)) {
         return;
     }
-    string str1 = string_init(string_data(dst), string_size(dst));
-    string str2 = string_init(string_data(src), string_size(src));
-    string_copy(dst, str2);
-    string_copy(src, str1);
-    string_destroy(str1);
-    string_destroy(str2);
+    string str = string_init(string_data(dst), string_size(dst));
+    dst->size = string_size(src);
+    string_reserve(dst, string_size(src));
+    string_copy(dst, src);
+    src->size = string_size(str);
+    string_reserve(src, string_size(str));
+    string_copy(src, str);
+    string_destroy(str);
 }
 ////////////
 // Search //
 ////////////
-/*
-* Search algorithm to find a specific string inside a string container.
-*/
-static _UINT_ string_search(string self, const char* str, _UINT_ start, uint8_t search_type) {
-    _UINT_ pos_start = 0;
-    _UINT_ i = !search_type ? start : string_length_raw(self);
-    _UINT_ j = !search_type ? 0 : (strlen(str) - 1);
-    _UINT_ end = !search_type ? string_length_raw(self) : (start - 1);
-    if (search_type && (end > string_length_raw(self))) {
-        end = 0;
-    }
-    bool match = false;
-    for (; !search_type ? i <= end : i >= end; !search_type ? ++i : --i) {
-        if (string_at(self, i) == str[j]) {
-            pos_start = i;
-            match = true;
-            if ((search_type && !i) || ((strlen(str) == 1) && match)) {
-                break;
-            }
-            if (match) {
-                if (!search_type || (search_type && string_at(self, (i - 1)) == str[j])) {
-                    break;
-                }
-                else {
-                    j -= j > 0 ? 1 : 0;
-                }
-            }
-            if (!search_type ? j < strlen(str) : j >= 0) {
-                continue;
-            }
-            else {
-                break;
-            }
-        }
-        if (search_type && !i) {
-            break;
-        }
-        j = !search_type ? 0 : (strlen(str) - 1);
-        match = false;
-    }
-    return pos_start;
-}
 /*
 * Check if a string container is suitable to be searched.
 */
@@ -583,7 +540,32 @@ _UINT_ string_find(string self, const char* str, _UINT_ start) {
     if (!string_searchable(self, str, start)) {
         return 0;
     }
-    return string_search(self, str, start, 0);
+    _UINT_ pos_start = 0;
+    _UINT_ i = start;
+    _UINT_ j = 0;
+    const _UINT_ end = string_length_raw(self);
+    bool match = false;
+    for (; i <= end; ++i) {
+        if (string_at(self, i) == str[j]) {
+            if (!match) {
+                pos_start = i;
+            }
+            match = true;
+            if (strlen(str) == 1 || str[j + 1] == '\0') {
+                break;
+            }
+            else {
+                ++j;
+                continue;
+            }
+        }
+        if (match) {
+            j = 0;
+            pos_start = 0;
+            match = false;
+        }
+    }
+    return pos_start;
 }
 /**
 * @brief Search a string character in a string container.
@@ -599,7 +581,6 @@ char* string_find_raw(string self, const char* str, _UINT_ start)
     if (!string_searchable(self, str, start)) {
         return NULL;
     }
-    char* str_final;
     char* substr = start ? string_substr_raw(self, start, string_length_raw(self)) : NULL;
     const char* buffer = start ? strstr(substr, str) : strstr(string_data(self), str);
     if (!buffer) {
@@ -607,7 +588,7 @@ char* string_find_raw(string self, const char* str, _UINT_ start)
         return NULL;
     }
     const int size = strlen(buffer) + 1;
-    str_final = _MALLOC_(str_final, size, NULL);
+    char* str_final = _MALLOC_(str_final, size, NULL);
     strncpy(str_final, buffer, strlen(buffer));
     if (start){
         free(substr);
@@ -628,7 +609,32 @@ _UINT_ string_rfind(string self, const char* str, _UINT_ start)
     if (!string_searchable(self, str, start)) {
         return 0;
     }
-    return string_search(self, str, start, 1);
+    _UINT_ pos_start = 0;
+    _UINT_ i = string_length_raw(self);
+    _UINT_ j = (strlen(str) - 1);
+    _UINT_ end = (start - 1);
+    if (end > i) {
+        end = 0;
+    }
+    bool match = false;
+    for (; i >= end; --i) {
+        if (string_at(self, i) == str[j]) {
+            match = true;
+            if (!j) {
+                pos_start = i;
+                break;
+            }
+            else {
+                --j;
+                continue;
+            }
+        }
+        if (match) {
+            j = (strlen(str) - 1);
+            match = false;
+        }
+    }
+    return pos_start;
 }
 /**
 * @brief Search backwards a string character in a string container.
