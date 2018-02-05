@@ -28,20 +28,18 @@ SOFTWARE.
 #include <stdbool.h> // bool
 #include <stdint.h>  // Cross platform integer size
 
-typedef uint8_t _UINT_;
-
 typedef struct _internal_string* string;
 
 ///////////
 // Basic //
 ///////////
 void string_assign(string self, const char* string);
-string string_init(const char* str, _UINT_ size);
+string string_init(const char* str, size_t size);
 void string_destroy(string self);
 ////////////
 // Access //
 ////////////
-char string_at(string self, _UINT_ pos);
+char string_at(string self, size_t pos);
 char string_back(string self);
 char* string_data(string self);
 char string_front(string self);
@@ -49,13 +47,13 @@ void string_to_array(string self, char* array);
 //////////////
 // Capacity //
 //////////////
-_UINT_ string_capacity(string self);
+size_t string_capacity(string self);
 bool string_empty(string self);
-_UINT_ string_length(string self);
-_UINT_ string_length_raw(string self);
-void string_reserve(string self, _UINT_ size);
+size_t string_length(string self);
+size_t string_length_raw(string self);
+void string_reserve(string self, size_t size);
 void string_shrink_to_fit(string self);
-_UINT_ string_size(string self);
+size_t string_size(string self);
 /////////////////
 // Operations //
 ////////////////
@@ -63,24 +61,24 @@ void string_append(string self, const char* string);
 void string_clear(string self);
 void string_copy(string dst, string src);
 int string_compare(string dst, string src);
-void string_erase(string self, _UINT_ start, _UINT_ end);
-void string_insert(string self, const char* str, _UINT_ pos);
+void string_erase(string self, size_t start, size_t end);
+void string_insert(string self, const char* str, size_t pos);
 void string_pop_back(string self);
 void string_push_back(string self, const char c);
-void string_replace(string self, const char* string, _UINT_ pos, int count);
-void string_resize(string self, _UINT_ size);
-string string_substr(string self, _UINT_ start, _UINT_ end);
-char* string_substr_raw(string self, _UINT_ start, _UINT_ end);
+void string_replace(string self, const char* string, size_t pos, int count);
+void string_resize(string self, size_t size);
+string string_substr(string self, size_t start, size_t end);
+char* string_substr_raw(string self, size_t start, size_t end);
 void string_swap(string dst, string src);
 ////////////
 // Search //
 ////////////
-_UINT_ string_find(string self, const char* string, _UINT_ start);
-char* string_find_raw(string self, const char* string, _UINT_ start);
-_UINT_ string_rfind(string self, const char* string, _UINT_ start);
-char* string_rfind_raw(string self, const char* string, _UINT_ start);
-_UINT_ string_find_first_of(string self, const char* string, _UINT_ pos, int at);
-_UINT_ string_find_first_not_of(string self, const char* string, _UINT_ pos);
-_UINT_ string_find_last_of(string self, const char* string, _UINT_ pos, int at);
-_UINT_ string_find_last_not_of(string self, const char* string, _UINT_ pos);
+size_t string_find(string self, const char* string, size_t start);
+char* string_find_raw(string self, const char* string, size_t start);
+size_t string_rfind(string self, const char* string, size_t start);
+char* string_rfind_raw(string self, const char* string, size_t start);
+size_t string_find_first_of(string self, const char* string, size_t pos, int at);
+size_t string_find_first_not_of(string self, const char* string, size_t pos);
+size_t string_find_last_of(string self, const char* string, size_t pos, int at);
+size_t string_find_last_not_of(string self, const char* string, size_t pos);
 #endif

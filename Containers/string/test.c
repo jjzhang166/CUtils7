@@ -29,7 +29,7 @@ SOFTWARE.
 #include "src/str.h"
 
 #define STRING_INFO(str)                                            \
-    printf("\t\t\tstring_size(%s) = %d\n", #str, string_size(str)); \
+    printf("\t\t\tstring_size(%s) = %ld\n", #str, string_size(str)); \
     printf("\t\t\tstring_data(%s) = %s\n", #str, string_data(str))
 
 int main(void)
@@ -176,18 +176,18 @@ int main(void)
     STRING_INFO(str3);
     // string_reserve
     puts("\n\tvoid string_reserve(string self, int size)");
-    const _UINT_ str1_reserve = (_UINT_)(string_size(str1) * 1.5);
-    printf("\t\tstr1_reserve = %d\n", str1_reserve);
+    const size_t str1_reserve = (size_t)(string_size(str1) * 1.5);
+    printf("\t\tstr1_reserve = %ld\n", str1_reserve);
     string_reserve(str1, str1_reserve);
     puts("\t\tstring_reserve(str1, str1_reserve)");
     STRING_INFO(str1);
-    const _UINT_ str2_reserve = (_UINT_)(string_size(str2) * 1.5);
-    printf("\t\tstr2_reserve = %d\n", str2_reserve);
+    const size_t str2_reserve = (size_t)(string_size(str2) * 1.5);
+    printf("\t\tstr2_reserve = %ld\n", str2_reserve);
     string_reserve(str2, str2_reserve);
     puts("\t\tstring_reserve(str2, str2_reserve)");
     STRING_INFO(str2);
-    const _UINT_ str3_reserve = (_UINT_)(string_size(str3) * 1.5);
-    printf("\t\tstr3_reserve = %d\n", str3_reserve);
+    const size_t str3_reserve = (size_t)(string_size(str3) * 1.5);
+    printf("\t\tstr3_reserve = %ld\n", str3_reserve);
     string_reserve(str3, str3_reserve);
     puts("\t\tstring_reserve(str3, str3_reserve)");
     STRING_INFO(str3);
@@ -241,7 +241,7 @@ int main(void)
     // string_substr_raw
     puts("\n\tchar* string_substr_raw(string self, int start, int end)");
     char* str9_content = string_substr_raw(str3, 10, 19);
-    string str9 = string_init(str9_content ? str9_content : NULL, strlen(str9_content));
+    string str9 = string_init(str9_content, strlen(str9_content));
     if (str9_content) {
         free(str9_content);
     }
