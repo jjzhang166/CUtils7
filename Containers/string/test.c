@@ -28,16 +28,15 @@ SOFTWARE.
 
 #include "src/str.h"
 
-#define STRING_INFO(str)                                            \
+#define STRING_INFO(str)                                             \
     printf("\t\t\tstring_size(%s) = %ld\n", #str, string_size(str)); \
     printf("\t\t\tstring_data(%s) = %s\n", #str, string_data(str))
 
-int main(void)
-{
+int main(void) {
     // Test
     puts("String container functions:");
     // string_init
-    puts("\tstring string_init(char* str):");
+    puts("\tstring_init(const char* str, size_t size):");
     string str1 = string_init("Hey, you.", 0);
     puts("\t\tstring_init(\"Hey, you.\"):");
     STRING_INFO(str1);
@@ -494,6 +493,12 @@ int main(void)
     string_repeat(str8, 4);
     puts("\t\tstring_repeat(str8, 4):");
     STRING_INFO(str8);
+    //string_move
+    puts("\n\tvoid string_move(string dst, string src):");
+    string str14 = NULL;
+    str14 = string_move(str14, str12);
+    puts("\t\tstring_move(str14, str12):");
+    STRING_INFO(str14);
     // string_destroy
     string_destroy(str1);
     string_destroy(str2);
@@ -506,8 +511,9 @@ int main(void)
     string_destroy(str9);
     string_destroy(str10);
     string_destroy(str11);
-    string_destroy(str12);
+    //string_destroy(str12);
     string_destroy(str13);
+    string_destroy(str14);
 
     getchar();
     return EXIT_SUCCESS;

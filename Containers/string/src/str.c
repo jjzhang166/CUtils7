@@ -98,9 +98,9 @@ string string_init(const char* str, size_t size) {
     return init;
 }
 /**
- * @brief Free the memory of a structure content plus structure itself.
+ * @brief Free the memory of a string content plus string itself.
  *
- * @param self The structure to be freed.
+ * @param self The string to be freed.
  */
 void string_destroy(string self) {
     if (!self) {
@@ -111,9 +111,9 @@ void string_destroy(string self) {
     }
     free(self);
 }
-//||||||||||
-// Access ||
-//||||||||||
+////////////
+// Access //
+////////////
 /**
  * @brief Returns a character from a string container at given position.
  *
@@ -548,6 +548,27 @@ void string_lower_case(string self) {
     }
 }
 /**
+ * @brief Retrieve the greater character by it's value from string container content.
+ * 
+ * @param self String container content to get character from.
+ * @param start Start position from which will start searching.
+ * @param end End position at which the search will stop.
+ * 
+ * @return Return the greater character by it's value from self.
+ */
+char string_max_char(string self, size_t start, size_t end) {
+    if (!string_status(self) || (start > string_length(self) || !end || (end > string_length(self)))) {
+        return '\0';
+    }
+    char max_char = '\0';
+    for (size_t i = start; i < end; ++i) {
+        if (!i || max_char < string_at(self, i)) {
+            max_char = string_at(self, i);
+        }
+    }
+    return max_char;
+}
+/**
  * @brief Retrieve the lesser character by it's value from string container content.
  * 
  * @param self String container content to get character from.
@@ -569,25 +590,40 @@ char string_min_char(string self, size_t start, size_t end) {
     return min_char;
 }
 /**
- * @brief Retrieve the greater character by it's value from string container content.
+ * @brief Move the content from a string container to another one.
  * 
- * @param self String container content to get character from.
- * @param start Start position from which will start searching.
- * @param end End position at which the search will stop.
+ * @param dst String container that will hold the content in another string container.
+ * @param src String container that will be moved onto another string container.
  * 
- * @return Return the greater character by it's value from self.
+ * @return Return dst containing the content that existed in src before been deleted.
  */
-char string_max_char(string self, size_t start, size_t end) {
-    if (!string_status(self) || (start > string_length(self) || !end || (end > string_length(self)))) {
-        return '\0';
+string string_move(string dst, string src) {
+    if (!string_status(src)) {
+        return NULL;
     }
-    char max_char = '\0';
-    for (size_t i = start; i < end; ++i) {
-        if (!i || max_char < string_at(self, i)) {
-            max_char = string_at(self, i);
+    bool dst_was_null = false;
+    if (!dst) {
+        dst = malloc(sizeof(struct _internal_string));
+        if (!dst) {
+            return NULL;
         }
+        dst_was_null = true;
     }
-    return max_char;
+    else {
+        free(dst->content);
+    }
+    dst->size = src->size;
+    dst->content = malloc(dst->size);
+    if (!dst->content) {
+        if (dst_was_null) {
+            free(dst);
+        }
+        return NULL;
+    }
+    memset(dst->content, '\0', dst->size);
+    string_copy(dst, src);
+    string_destroy(src);
+    return dst;
 }
 /**
  * @brief Remove last character in a string container.
