@@ -37,13 +37,13 @@ int main(void) {
     puts("String container functions:");
     // string_init
     puts("\tstring_init(const char* str, size_t size):");
-    string str1 = string_init("Hey, you.", 0);
+    string_t* str1 = string_init("Hey, you.", 0);
     puts("\t\tstring_init(\"Hey, you.\"):");
     STRING_INFO(str1);
-    string str2 = string_init("", 0);
+    string_t* str2 = string_init("", 0);
     puts("\t\tstring_init(\"\"):");
     STRING_INFO(str2);
-    string str3 = string_init(NULL, 13);
+    string_t* str3 = string_init(NULL, 13);
     puts("\t\tstring_init(NULL):");
     STRING_INFO(str3);
     // string_empty
@@ -144,35 +144,21 @@ int main(void) {
     STRING_INFO(str3);
     // string_copy
     puts("\n\tvoid string_copy(string dst, string src):");
-    string str4 = string_init("How are you, son?", 0);
+    string_t* str4 = string_init("How are you, son?", 0);
     printf("\t\tstr4 = %s\n", string_data(str4));
     string_copy(str1, str4);
     puts("\t\tstring_copy(str1, str4):");
     STRING_INFO(str1);
-    string str5 = string_init("Hello, sir.", 11);
+    string_t* str5 = string_init("Hello, sir.", 11);
     printf("\t\tstr5 = %s\n", string_data(str5));
     string_copy(str2, str5);
     puts("\t\tstring_copy(str2, str5):");
     STRING_INFO(str2);
-    string str6 = string_init("Hey, you! Stop there!", 5);
+    string_t* str6 = string_init("Hey, you! Stop there!", 5);
     printf("\t\tstr6 = %s\n", string_data(str6));
     string_copy(str3, str6);
     puts("\t\tstring_copy(str3, str6):");
     STRING_INFO(str3);
-    // string_compare
-    puts("\n\tint string_compare(string dst, string src):");
-    const int cmp1 = string_compare(str5, str3);
-    printf("\t\tstring_compare(str5, str3) = %d\n", cmp1);
-    STRING_INFO(str5);
-    STRING_INFO(str3);
-    const int cmp2 = string_compare(str2, str5);
-    printf("\t\tstring_compare(str2, str5) = %d\n", cmp2);
-    STRING_INFO(str2);
-    STRING_INFO(str5);
-    const int cmp3 = string_compare(str1, str2);
-    printf("\t\tstring_compare(str1, str2) = %d\n", cmp3);
-    STRING_INFO(str1);
-    STRING_INFO(str2);
     // string_erase
     puts("\n\tvoid string_erase(string self, int start, int end):");
     string_erase(str1, 11, 15);
@@ -181,8 +167,8 @@ int main(void) {
     string_erase(str2, 5, 9);
     puts("\t\tstring_erase(str2, 5, 9):");
     STRING_INFO(str2);
-    string_erase(str3, 9, string_length_array(str3));
-    puts("\t\tstring_erase(str3, 9, string_length_array(str3)):");
+    string_erase(str3, 9, string_length(str3) - 1);
+    puts("\t\tstring_erase(str3, 9, string_length(str3) - 1):");
     STRING_INFO(str3);
     // string_reserve
     puts("\n\tvoid string_reserve(string self, int size):");
@@ -242,16 +228,16 @@ int main(void) {
     STRING_INFO(str3);
     // string_slice
     puts("\n\tstring string_slice(string self, int start, int end):");
-    string str7 = string_slice(str1, 0, 11);
+    string_t* str7 = string_slice(str1, 0, 11);
     puts("\t\tstring_slice(str1, 0, 11):");
     STRING_INFO(str7);
-    string str8 = string_slice(str2, 0, string_length_array(str2));
-    puts("\t\tstring_slice(str2, 0, string_length_array(str2)):");
+    string_t* str8 = string_slice(str2, 0, string_length(str2) - 1);
+    puts("\t\tstring_slice(str2, 0, string_length(str2) - 1):");
     STRING_INFO(str8);
     // string_slice_array
     puts("\n\tchar* string_slice_array(string self, int start, int end):");
     char* str9_content = string_slice_array(str3, 10, 19);
-    string str9 = string_init(str9_content, strlen(str9_content));
+    string_t* str9 = string_init(str9_content, strlen(str9_content));
     if (str9_content) {
         free(str9_content);
     }
@@ -263,22 +249,22 @@ int main(void) {
     STRING_INFO(str1);
     // string_count
     puts("\n\tsize_t string_count(string self, const char* src, size_t start, size_t end):");
-    const size_t str7_count = string_count(str7, "you", 0, string_length_array(str7));
-    puts("\t\tstring_count(str7, \"you\", 0, string_length_array(str7)):");
+    const size_t str7_count = string_count(str7, "you", 0, string_length(str7) - 1);
+    puts("\t\tstring_count(str7, \"you\", 0, string_length(str7) - 1):");
     printf("\t\t\tstr7_count = %ld\n", str7_count);
-    const size_t str8_count = string_count(str8, "l", 0, string_length_array(str8));
-    puts("\t\tstring_count(str8, \"l\", 0, string_length_array(str8)):");
+    const size_t str8_count = string_count(str8, "l", 0, string_length(str8) - 1);
+    puts("\t\tstring_count(str8, \"l\", 0, string_length(str8) - 1):");
     printf("\t\t\tstr8_count = %ld\n", str8_count);
     const size_t str9_count = string_count(str9, ", ", 1, 8);
     puts("\t\tstring_count(str9, \", \", 1, 8):");
     printf("\t\t\tstr9_count = %ld\n", str9_count);
     // string_end_with
     puts("\n\tbool string_end_with(string self, const char* str):");
-    const bool str7_end_with = string_end_with(str7, "you?", 0, string_length_array(str7));
-    puts("\t\tstring_end_with(str7, \"you?\", 0, string_length_array(str7)):");
+    const bool str7_end_with = string_end_with(str7, "you?", 0, string_length(str7) - 1);
+    puts("\t\tstring_end_with(str7, \"you?\", 0, string_length(str7) - 1):");
     printf("\t\t\tstr7_end_with = %d\n", str7_end_with);
-    const bool str8_end_with = string_end_with(str8, "o", 0, string_length_array(str8));
-    puts("\t\tstring_end_with(str8, \"o\", 0, string_length_array(self)):");
+    const bool str8_end_with = string_end_with(str8, "o", 0, string_length(str8) - 1);
+    puts("\t\tstring_end_with(str8, \"o\", 0, string_length(self) - 1):");
     printf("\t\t\tstr8_end_with = %d\n", str8_end_with);
     const bool str9_end_with = string_end_with(str9, ", ", 0, 5);
     puts("\t\tstring_end_with(str9, \", \", 0, 5):");
@@ -408,13 +394,13 @@ int main(void) {
     printf("\t\t\tstr9_start_with = %d\n", str9_start_with);
     // string_expand_tab
     puts("\n\tstring string_expand_tabs(string self, size_t tab_size):");
-    string str10 = string_init("Wait\tme", 0);
+    string_t* str10 = string_init("Wait\tme", 0);
     puts("\t\tstring_init(\"Wait\tme\", 0):");
     STRING_INFO(str10);
     string_expand_tabs(str10, 8);
     puts("\t\tstring_expand_tabs(str10, 8):");
     STRING_INFO(str10);
-    string str11 = string_init("Welcome\tto\tmy\thome", 0);
+    string_t* str11 = string_init("Welcome\tto\tmy\thome", 0);
     puts("\t\tstring_init(\"Welcome\tto\tmy\thome\", 0):");
     STRING_INFO(str11);
     string_expand_tabs(str11, 0);
@@ -422,10 +408,10 @@ int main(void) {
     STRING_INFO(str11);
     // string_join
     puts("\n\tvoid string_join(string dst, string src):");
-    string str12 = string_init("Hey... ", 0);
+    string_t* str12 = string_init("Hey... ", 0);
     puts("\t\tstring_init(\"Hey... \", 0):");
     STRING_INFO(str12);
-    string str13 = string_init("Wait for me!", 0);
+    string_t* str13 = string_init("Wait for me!", 0);
     puts("\t\tstring_init(\"Wait for me!\", 0):");
     STRING_INFO(str13);
     string_join(str12, str13);
@@ -495,7 +481,7 @@ int main(void) {
     STRING_INFO(str8);
     //string_move
     puts("\n\tvoid string_move(string dst, string src):");
-    string str14 = NULL;
+    string_t* str14 = NULL;
     str14 = string_move(str14, str12);
     puts("\t\tstring_move(str14, str12):");
     STRING_INFO(str14);

@@ -24,7 +24,7 @@ SOFTWARE.
 
 #include <ctype.h>  // isctrl, isprint
 #include <stdlib.h> // malloc, NULL, realloc
-#include <string.h> // strlen, strncat, strncmp, strncpy, strstr
+#include <string.h> // strncat, strncmp, strstr
 #include "str.h"
 
 #define _MALLOC_(string, size, r_value) \
@@ -32,7 +32,59 @@ SOFTWARE.
     if (!string) {                      \
         return r_value;                 \
     }                                   \
-    memset(string, '\0', size)
+    char_clear(string, size);
+
+#ifndef _CHAR_H
+static void char_clear(char *self, const size_t self_size) {
+    if (!self) {
+        return;
+    }
+    for (size_t i = 0; i < self_size; ++i) {
+        self[i] = '\0';
+    }
+}
+
+static char* char_copy(char* dst, const char* src, const size_t char_count) {
+    if (!src) {
+        return NULL;
+    }
+    if (!dst) {
+        dst = _MALLOC_(dst, char_count + 1, NULL);
+    }
+    else {
+        char_clear(dst, char_count);
+    }
+    for (size_t i = 0; i < char_count; ++i) {
+        dst[i] = src[i];
+    }
+    return dst;
+}
+
+static char* char_join(char* dst, const char* src, const size_t char_count) {
+    if (!src) {
+        return NULL;
+    }
+    if (!dst) {
+        dst = _MALLOC_(dst, char_count + 1, NULL);
+    }
+    size_t src_it = 0;
+    for (size_t i = char_length(dst) - 1; i < char_count; ++i) {
+        dst[i] = src[src_it++];
+    }
+    return dst;
+}
+
+static size_t char_length(const char* self) {
+    if (!self) {
+        return 0;
+    }
+    size_t length = 0;
+    while (self[length] != '\0') {
+        ++length;
+    }
+    return length;
+}
+#endif
 
 static const float _GROWTH_FACTOR_ = 1.5f;
 static const uint8_t _LETTER_CASE_FACTOR_ = 32;
@@ -44,12 +96,12 @@ struct _internal_string {
 /*
  * Check if a string and its content is not null.
  */
-static bool string_status(string self) {
+static bool string_status(string_t* const self) {
     return self && self->content;
 }
-//|||||||||
-// Basic ||
-//|||||||||
+///////////
+// Basic //
+///////////
 /**
  * @brief Assign a new content to a string.
  *
@@ -57,7 +109,7 @@ static bool string_status(string self) {
  * @param str The new content to be assigned.
  *
  */
-void string_assign(string self, const char* str) {
+void string_assign(string_t* const self, const char* const str) {
     if (!self) {
         return;
     }
@@ -75,24 +127,24 @@ void string_assign(string self, const char* str) {
  *
  * @return A new string container.
  */
-string string_init(const char* str, size_t size) {
-    const string init = malloc(sizeof(struct _internal_string));
+string_t* string_init(const char* const str, const size_t size) {
+    string_t* init = malloc(sizeof(string_t));
     if (!init) {
         return NULL;
     }
-    const size_t str_length = str ? strlen(str) : 0;
+    const size_t str_length = str ? char_length(str) : 0;
     if (str_length) {
-        init->size = size < (str_length + 1) ? (size_t)(str_length * _GROWTH_FACTOR_) : size;
+        init->size = size < str_length + 1 ? (size_t)(str_length * _GROWTH_FACTOR_) : size;
         init->content = malloc(string_size(init));
         if (!string_data(init)) {
             free(init);
             return NULL;
         }
-        memset(init->content, '\0', init->size);
-        strncpy(string_data(init), str, str_length);
+        char_clear(init->content, init->size);
+        char_copy(string_data(init), str, str_length);
     }
     else {
-        init->size = size ? (size + 1) : 0;
+        init->size = size ? size + 1 : 0;
         init->content = NULL;
     }
     return init;
@@ -102,7 +154,7 @@ string string_init(const char* str, size_t size) {
  *
  * @param self The string to be freed.
  */
-void string_destroy(string self) {
+void string_destroy(string_t* const self) {
     if (!self) {
         return;
     }
@@ -110,6 +162,18 @@ void string_destroy(string self) {
         free(self->content);
     }
     free(self);
+}
+/*
+ * Returns a string container size less null termination character.
+ */
+static size_t string_capacity(string_t* const self) {
+    return self ? string_size(self) - 1 : 0;
+}
+/*
+ * brief Returns the amount of not null characters in a string container.
+ */
+static size_t string_length_array(string_t* const self) {
+    return string_status(self) ? (char_length(string_data(self)) - 1) : 0;
 }
 ////////////
 // Access //
@@ -122,8 +186,8 @@ void string_destroy(string self) {
  *
  * @return Return a char from self at pos.
  */
-char string_at(string self, size_t pos) {
-    return (string_status(self) && (pos <= string_capacity(self))) ? self->content[pos] : '\0';
+char string_at(string_t* const self, const size_t pos) {
+    return string_status(self) && pos <= string_capacity(self) ? self->content[pos] : '\0';
 }
 /**
  * @brief Return the last character in a string container.
@@ -132,8 +196,8 @@ char string_at(string self, size_t pos) {
  *
  * @return Return the last char in self.
  */
-char string_back(string self) {
-    return string_status(self) ? string_at(self,string_length_array(self)) : '\0';
+char string_back(string_t* const self) {
+    return string_status(self) ? string_at(self, string_length_array(self)) : '\0';
 }
 /**
  * @brief Return the content in a string container.
@@ -142,7 +206,7 @@ char string_back(string self) {
  *
  * @return Return a pointer to char with self content.
  */
-char* string_data(string self) {
+char* string_data(string_t* const self) {
     return string_status(self) ? self->content : NULL;
 }
 /**
@@ -152,7 +216,7 @@ char* string_data(string self) {
  *
  * @return Return the first char in self.
  */
-char string_front(string self) {
+char string_front(string_t* const self) {
     return string_status(self) ? string_at(self, 0) : '\0';
 }
 /**
@@ -161,25 +225,18 @@ char string_front(string self) {
  * @param self String container whose content will be copied.
  * @param array Pointer to char which will recieve the copy from a string container.
  */
-void string_to_array(string self, char* array) {
+void string_to_array(string_t* const self, char* const array, const size_t array_size) {
     if (!string_status(self)) {
         return;
     }
-    strncpy(array, string_data(self), string_length(self));
+    const size_t self_length = string_length(self);
+    if (array_size >= self_length + 1) {
+        char_copy(array, string_data(self), self_length);
+    }
 }
 //////////////
 // Capacity //
 //////////////
-/**
- * @brief Returns a string container size less null termination character.
- *
- * @param self String container to get capacity from.
- *
- * @return Return the size of self less one; which is the null terminator.
- */
-size_t string_capacity(string self) {
-    return self ? (string_size(self) - 1) : 0;
-}
 /**
  * @brief Returns if a string container has any characters at all.
  *
@@ -187,7 +244,7 @@ size_t string_capacity(string self) {
  *
  * @return Return true if self has 0 length.
  */
-bool string_empty(string self) {
+bool string_empty(string_t* const self) {
     return self ? string_length(self) == 0 : true;
 }
 /**
@@ -197,18 +254,8 @@ bool string_empty(string self) {
  *
  * @return Return the amount of not null characters in self. Start point is 1;
  */
-size_t string_length(string self) {
-    return string_status(self) ? strlen(string_data(self)) : 0;
-}
-/**
- * @brief Returns the amount of not null characters in a string container.
- *
- * @param self String container to get characters length from.
- *
- * @return Return the amount of not null characters in self. Start point is 0;
- */
-size_t string_length_array(string self) {
-    return string_status(self) ? (strlen(string_data(self)) - 1) : 0;
+size_t string_length(string_t* const self) {
+    return string_status(self) ? char_length(string_data(self)) : 0;
 }
 /**
  * @brief Assign a new size to a string container.
@@ -216,7 +263,7 @@ size_t string_length_array(string self) {
  * @param self String container to set size at.
  * @param size New size to be set. Unless it's lesser than current size.
  */
-void string_reserve(string self, size_t size) {
+void string_reserve(string_t* const self, const size_t size) {
     if (!self || !size) {
         return;
     }
@@ -227,7 +274,7 @@ void string_reserve(string self, size_t size) {
             return;
         }
         self->content = temp;
-        for (size_t i = (string_length(self) + 1); i < string_size(self); ++i) {
+        for (size_t i = string_length(self) + 1; i < string_size(self); ++i) {
             string_replace(self, "\0", i, 1);
         }
     }
@@ -237,13 +284,13 @@ void string_reserve(string self, size_t size) {
  *
  * @param self String container to shrink size.
  */
-void string_shrink_to_fit(string self) {
+void string_shrink_to_fit(string_t* const self) {
     if (!self) {
         return;
     }
     const size_t self_length = string_length(self);
     if (self_length < self->size) {
-        const size_t size = (string_size(self) - (self_length + 1));
+        const size_t size = string_size(self) - (self_length + 1);
         self->size -= size;
         char* temp = realloc(string_data(self), string_size(self));
         if (!temp) {
@@ -259,7 +306,7 @@ void string_shrink_to_fit(string self) {
  *
  * @return Return the current size of self.
  */
-size_t string_size(string self) {
+size_t string_size(string_t* const self) {
     return self ? self->size : 0;
 }
 ////////////////
@@ -271,11 +318,11 @@ size_t string_size(string self) {
  * @param self String container which will hold the string character.
  * @param str String character to be insert into a string container.
  */
-void string_append(string self, const char* str) {
+void string_append(string_t* const self, const char* str) {
     if (!self || !str) {
         return;
     }
-    const size_t str_length = strlen(str);
+    const size_t str_length = char_length(str);
     const size_t size = (size_t)(str_length * _GROWTH_FACTOR_);
     if (string_data(self)) {
         if (string_size(self) < size) {
@@ -295,7 +342,7 @@ void string_append(string self, const char* str) {
  * 
  * @param self String container whose first letter will be change.
  */
-void string_capitalize(string self) {
+void string_capitalize(string_t* const self) {
     if (!string_status(self) || string_at(self, 0) < 'a' || string_at(self, 0) > 'z') {
         return;
     }
@@ -306,22 +353,11 @@ void string_capitalize(string self) {
  *
  * @param self String container whose characters are going to be removed.
  */
-void string_clear(string self) {
+void string_clear(string_t* const self) {
     if (!string_status(self)) {
         return;
     }
-    memset(string_data(self), '\0', string_length(self));
-}
-/**
- * @brief Compare two string container content.
- *
- * @param dst String container that will be compare.
- * @param src String container that will compare.
- *
- * @return Return -1 if dst appear before src. 0 if the both are equal. 1 if dst appear after src.
- */
-int string_compare(string dst, string src) {
-    return strncmp(string_data(dst), string_data(src), string_length(src));
+    char_clear(string_data(self), string_length(self));
 }
 /**
  * @brief Copy the content from a string container to another one.
@@ -329,15 +365,21 @@ int string_compare(string dst, string src) {
  * @param dst String container that will recieve the copied characters.
  * @param src String container whose characters will be copied.
  */
-void string_copy(string dst, string src) {
-    if (!string_status(dst) || !string_status(src)) {
-        return;
+string_t* string_copy(string_t* dst, string_t* const src) {
+    if (!string_status(src)) {
+        return NULL;
     }
-    if (string_size(dst) < string_size(src)) {
-        string_reserve(dst, string_size(src));
+    if (!dst) {
+        dst = string_init(NULL, src->size);
+        if (!dst) {
+            return NULL;
+        }
     }
-    string_clear(dst);
-    strncpy(string_data(dst), string_data(src), string_size(dst));
+    else {
+        string_clear(dst);
+    }
+    string_append(dst, string_data(src));
+    return dst;
 }
 /**
  * @brief Remove a characters amount from a string container.
@@ -346,19 +388,20 @@ void string_copy(string dst, string src) {
  * @param start Start position from which will the erase begin.
  * @param end End position at which the erase will stop.
  */
-void string_erase(string self, size_t start, size_t end) {
-    if (!string_status(self) || (start > string_length_array(self)) || (end >= string_length(self))) {
+void string_erase(string_t* const self, const size_t start, const size_t end) {
+    if (!string_status(self) || start > string_length_array(self) || end >= string_length(self)) {
         return;
     }
     char* buffer = _MALLOC_(buffer, string_size(self),);
-    strncpy(buffer, string_data(self), string_size(self));
+    char_copy(buffer, string_data(self), string_size(self));
     string_clear(self);
     size_t i = 0;
     size_t self_it = 0;
     for (; i < start; i++) {
         self->content[self_it++] = buffer[i];
     }
-    for (i = ++end; i < string_capacity(self); ++i) {
+    const size_t _end = end + 1;
+    for (i = _end; i < string_capacity(self); ++i) {
         self->content[self_it++] = buffer[i];
     }
     free(buffer);
@@ -371,15 +414,16 @@ void string_erase(string self, size_t start, size_t end) {
  * 
  * @result Return a string container with spaces instead of '\t' commands.
  */
-void string_expand_tabs(string self, size_t tab_size) {
+void string_expand_tabs(string_t* const self, const size_t tab_size) {
     if (!string_status(self)) {
         return;
     }
-    if (!tab_size) {
-        tab_size = 4;
+    size_t _tab_size = tab_size;
+    if (!_tab_size) {
+        _tab_size = 4;
     }
     const size_t tab_count = string_count(self, "\t", 0, string_length_array(self));
-    const size_t new_size = ((string_length(self) + (tab_size * tab_count)) + 1);
+    const size_t new_size = (string_length(self) + (_tab_size * tab_count)) + 1;
     if (string_size(self) < new_size) {
         const size_t self_size = (size_t)(new_size * _GROWTH_FACTOR_);
         string_reserve(self, self_size);
@@ -387,8 +431,8 @@ void string_expand_tabs(string self, size_t tab_size) {
     if (tab_count == 1) {
         const size_t tab_pos = string_find(self, "\t", 0);
         string_erase(self, tab_pos, tab_pos);
-        char* buffer = _MALLOC_(buffer, (tab_size + 1),);
-        for (size_t i = 0; i < tab_size; ++i) {
+        char* buffer = _MALLOC_(buffer, (_tab_size + 1),);
+        for (size_t i = 0; i < _tab_size; ++i) {
             buffer[i] = ' ';
         }
         string_insert(self, buffer, tab_pos);
@@ -396,12 +440,12 @@ void string_expand_tabs(string self, size_t tab_size) {
     }
     else {
         char* buffer = _MALLOC_(buffer, new_size,);
-        string_to_array(self, buffer);
+        string_to_array(self, buffer, new_size);
         string_clear(self);
         size_t buffer_it = 0;
         for (size_t i = 0; buffer[buffer_it] != '\0'; ++i, ++buffer_it) {
             if (buffer[buffer_it] == '\t') {
-                for (size_t j = 0; j < tab_size; ++j) {
+                for (size_t j = 0; j < _tab_size; ++j) {
                     string_push_back(self, ' ');
                 }
                 i += tab_count;
@@ -420,29 +464,41 @@ void string_expand_tabs(string self, size_t tab_size) {
  * @param str Characters to be inserted.
  * @param pos Position at which characters will be inserted.
  */
-void string_insert(string self, const char* str, size_t pos) {
-    if (!self || !str || (pos > string_capacity(self))) {
+void string_insert(string_t* const self, const char* const str, const size_t pos) {
+    if (!self || !str || pos > string_capacity(self)) {
         return;
     }
     char* buffer = _MALLOC_(buffer, string_size(self),);
-    strncpy(buffer, string_data(self), string_size(self));
+    char_copy(buffer, string_data(self), string_size(self));
     if (string_length(self) == string_capacity(self)) {
         self->size = (size_t)(string_size(self) * _GROWTH_FACTOR_);
         string_reserve(self, string_size(self));
     }
-    memset(string_data(self), '\0', string_size(self));
+    char_clear(string_data(self), string_size(self));
     size_t i;
     size_t buffer_it = 0;
     for (i = 0; i < pos; ++i) {
         string_push_back(self, buffer[buffer_it++]);
     }
-    for (i = 0; i < strlen(str); ++i) {
+    for (i = 0; i < char_length(str); ++i) {
         string_push_back(self, str[i]);
     }
-    for (i = buffer_it; i <= strlen(buffer); ++i) {
+    for (i = buffer_it; i <= char_length(buffer); ++i) {
         string_push_back(self, buffer[buffer_it++]);
     }
     free(buffer);
+}
+/**
+ * @brief Compare two string container content.
+ *
+ * @param str1 String container that will be compare.
+ * @param str2 String container that will compare.
+ */
+bool string_is_equal(string_t* const str1, string_t* const str2) {
+    if (!string_status(str1) || !string_status(str1)) {
+        return false;
+    }
+    return string_data(str1) == string_data(str2);
 }
 /**
  * @brief Join the content of two string containers.
@@ -450,18 +506,11 @@ void string_insert(string self, const char* str, size_t pos) {
  * @param dst String container that will be joined.
  * @param src String container that will join another one.
  */
-void string_join(string dst, string src) {
+void string_join(string_t* const dst, string_t* const src) {
     if (!string_status(dst) || !string_status(src)) {
         return;
     }
-    const size_t dst_length = string_length(dst);
-    const size_t src_length = string_length(src);
-    const size_t join_size = (dst_length + src_length + 1);
-    if (join_size > string_size(dst)) {
-        const size_t new_size = (size_t)(join_size * _GROWTH_FACTOR_);
-        string_reserve(dst, new_size);
-    }
-    strncat(string_data(dst), string_data(src), src_length);
+    string_append(dst, string_data(src));
 }
 /**
  * @brief Surround a string container content with a specify character.
@@ -470,22 +519,23 @@ void string_join(string dst, string src) {
  * @param width How many times the character will be add to surround the string container's content.
  * @param fill What character is going to surround the string container's content.
 */
-void string_justified(string self, size_t width, const char fill) {
+void string_justified(string_t* const self, const size_t width, const char fill) {
     if (!string_status(self) || !width || !fill) {
         return;
     }
     const size_t self_length = string_length(self);
-    if ((self_length + width) % 2 != 0) {
-        width++;
+    size_t _width = width;
+    if ((self_length + _width) % 2 != 0) {
+        _width++;
     }
-    if (width > string_size(self)) {
-        const size_t new_size = (size_t)(width * _GROWTH_FACTOR_);
+    if (_width > string_size(self)) {
+        const size_t new_size = (size_t)(_width * _GROWTH_FACTOR_);
         string_reserve(self, new_size);
     }
-    const size_t fill_size = ((width - self_length) / 2);
-    size_t fill_count = (self_length + fill_size);
+    const size_t fill_size = (_width - self_length) / 2;
+    size_t fill_count = self_length + fill_size;
     string_justified_right(self, fill_count, fill);
-    fill_count = (string_length(self) + fill_size);
+    fill_count = string_length(self) + fill_size;
     string_justified_left(self, fill_count, fill);
 }
 /**
@@ -495,11 +545,11 @@ void string_justified(string self, size_t width, const char fill) {
  * @param width How many times a character will be add to the right.
  * @param fill Character that will fill the string to the right.
  */
-void string_justified_left(string self, size_t width, const char fill) {
+void string_justified_left(string_t* const self, const size_t width, const char fill) {
     if (!string_status(self) || !width || !fill) {
         return;
     }
-    const size_t fill_count = (width - string_length(self));
+    const size_t fill_count = width - string_length(self);
     if (width > string_size(self)) {
         const size_t new_size = (size_t)(width * _GROWTH_FACTOR_);
         string_reserve(self, new_size);
@@ -515,11 +565,11 @@ void string_justified_left(string self, size_t width, const char fill) {
  * @param width How many times a character will be add to the left.
  * @param fill Character that will fill the string to the left.
  */
-void string_justified_right(string self, size_t width, const char fill) {
+void string_justified_right(string_t* const self, const size_t width, const char fill) {
     if (!string_status(self) || !width || !fill) {
         return;
     }
-    const size_t buffer_size = ((width - string_length(self)) + 1);
+    const size_t buffer_size = (width - string_length(self)) + 1;
     char* buffer = _MALLOC_(buffer, buffer_size,);
     for (size_t i = 0; i < (buffer_size - 1); ++i) {
         buffer[i] = fill;
@@ -536,7 +586,7 @@ void string_justified_right(string self, size_t width, const char fill) {
  * 
  * @param self String container content to be lowered.
  */
-void string_lower_case(string self) {
+void string_lower_case(string_t* const self) {
     if (!string_status(self)) {
         return;
     }
@@ -556,7 +606,7 @@ void string_lower_case(string self) {
  * 
  * @return Return the greater character by it's value from self.
  */
-char string_max_char(string self, size_t start, size_t end) {
+char string_max_char(string_t* const self, const size_t start, const size_t end) {
     if (!string_status(self) || (start > string_length(self) || !end || (end > string_length(self)))) {
         return '\0';
     }
@@ -577,8 +627,8 @@ char string_max_char(string self, size_t start, size_t end) {
  * 
  * @return Return the lesser character by it's value from self.
  */
-char string_min_char(string self, size_t start, size_t end) {
-    if (!string_status(self) || (start > string_length(self) || !end || (end > string_length(self)))) {
+char string_min_char(string_t* const self, const size_t start, const size_t end) {
+    if (!string_status(self) || (start > string_length(self) || !end || end > string_length(self))) {
         return '\0';
     }
     char min_char = '\0';
@@ -597,41 +647,24 @@ char string_min_char(string self, size_t start, size_t end) {
  * 
  * @return Return dst containing the content that existed in src before been deleted.
  */
-string string_move(string dst, string src) {
+string_t* string_move(string_t* const dst, string_t* const src) {
     if (!string_status(src)) {
         return NULL;
     }
-    bool dst_was_null = false;
-    if (!dst) {
-        dst = malloc(sizeof(struct _internal_string));
-        if (!dst) {
-            return NULL;
-        }
-        dst_was_null = true;
-    }
-    else {
-        free(dst->content);
-    }
-    dst->size = src->size;
-    dst->content = malloc(dst->size);
-    if (!dst->content) {
-        if (dst_was_null) {
-            free(dst);
-        }
+    string_t* temp = string_copy(dst, src);
+    if (!temp) {
         return NULL;
     }
-    memset(dst->content, '\0', dst->size);
-    string_copy(dst, src);
     string_destroy(src);
-    return dst;
+    return temp;
 }
 /**
  * @brief Remove last character in a string container.
  *
  * @param self String container whose last character will be removed.
  */
-void string_pop_back(string self) {
-    if (!string_status(self) || (string_length(self) <= 1)) {
+void string_pop_back(string_t* const self) {
+    if (!string_status(self) || string_length(self) <= 1) {
         return;
     }
     string_replace(self, "\0", string_length_array(self), 1);
@@ -642,7 +675,7 @@ void string_pop_back(string self) {
  * @param self String container that will hold the new character.
  * @param c Character to be add.
  */
-void string_push_back(string self, const char c) {
+void string_push_back(string_t* const self, const char c) {
     if (!self || (!isprint(c) && !iscntrl(c))) {
         return;
     }
@@ -652,12 +685,12 @@ void string_push_back(string self, const char c) {
             self->size = (size_t)(string_size(self) * _GROWTH_FACTOR_);
             string_reserve(self, string_size(self));
         }
-        strncat(string_data(self), buffer, strlen(buffer));
+        strncat(string_data(self), buffer, char_length(buffer));
     }
     else {
         self->size += 2;
         self->content = _MALLOC_(string_data(self), string_size(self),);
-        strncpy(string_data(self), buffer, strlen(buffer));
+        char_copy(string_data(self), buffer, char_length(buffer));
     }
 }
 /**
@@ -666,15 +699,15 @@ void string_push_back(string self, const char c) {
  * @param self String container whose content will be repeated.
  * @param repetitions Times that a string container contents will be repeated.
  */
-void string_repeat(string self, size_t repetitions) {
+void string_repeat(string_t* const self, const size_t repetitions) {
     if (!string_status(self) || repetitions <= 1) {
         return;
     }
     const size_t self_length = string_length(self);
-    const size_t buffer_size = (self_length + 1);
+    const size_t buffer_size = self_length + 1;
     char* buffer = _MALLOC_(buffer, buffer_size,);
-    string_to_array(self, buffer);
-    const size_t needed_size = ((self_length * repetitions) + 1);
+    string_to_array(self, buffer, buffer_size);
+    const size_t needed_size = (self_length * repetitions) + 1;
     if (string_size(self) < needed_size) {
         const size_t new_size = (size_t)(needed_size * _GROWTH_FACTOR_);
         string_reserve(self, new_size);
@@ -692,8 +725,8 @@ void string_repeat(string self, size_t repetitions) {
  * @param pos Position which the replacing will start.
  * @param count Character amount from str that will replace string content.
  */
-void string_replace(string self, const char* str, size_t pos, int count) {
-    if (!string_status(self) || !count || !str || (pos > string_capacity(self))) {
+void string_replace(string_t* const self, const char* const str, const size_t pos, int count) {
+    if (!string_status(self) || !count || !str || pos > string_capacity(self)) {
         return;
     }
     if (count > 1) {
@@ -711,11 +744,11 @@ void string_replace(string self, const char* str, size_t pos, int count) {
  * @param self String container that will be changed.
  * @param size New size that will be use in a string container.
  */
-void string_resize(string self, size_t size) {
+void string_resize(string_t* const self, const size_t size) {
     if (!self || !size) {
         return;
     }
-    const size_t count = (size - string_capacity(self));
+    const size_t count = size - string_capacity(self);
     if (size > string_capacity(self)) {
         string_reserve(self, size);
         const size_t end = string_length_array(self);
@@ -725,7 +758,7 @@ void string_resize(string self, size_t size) {
         }
     }
     else {
-        const size_t start = (string_capacity(self) - (string_length(self) - size));
+        const size_t start = string_capacity(self) - (string_length(self) - size);
         string_erase(self, start, (string_capacity(self) - 1));
     }
 }
@@ -738,17 +771,17 @@ void string_resize(string self, size_t size) {
  *
  * @return Return a string container holding the content requested from self.
  */
-string string_slice(string self, size_t start, size_t end) {
+string_t* string_slice(string_t* const self, const size_t start, const size_t end) {
     if (!string_status(self)) {
         return NULL;
     }
-    const size_t size = ((end - start) + 2);
+    const size_t size = (end - start) + 2;
     char* str = _MALLOC_(str, size, NULL);
     size_t str_it = 0;
     for (size_t i = start; i <= end; ++i) {
         str[str_it++] = string_at(self, i);
     }
-    string substr = string_init(str, strlen(str));
+    string_t* substr = string_init(str, char_length(str));
     free(str);
     return substr;
 }
@@ -761,7 +794,7 @@ string string_slice(string self, size_t start, size_t end) {
  *
  * @return Return a pointer to char holding the content requested from self.
  */
-char* string_slice_array(string self, size_t start, size_t end) {
+char* string_slice_array(string_t* const self, const size_t start, const size_t end) {
     if (!string_status(self) || !end) {
         return NULL;
     }
@@ -776,25 +809,23 @@ char* string_slice_array(string self, size_t start, size_t end) {
 /**
  * @brief Swap the content of two string containers.
  *
- * @param dst String container the will hold the swapped content.
+ * @param dst String container that will hold the swapped content.
  * @param src String container whose content will be swapped.
  */
-void string_swap(string dst, string src) {
+void string_swap(string_t* const dst, string_t* const src) {
     if (!string_status(dst) || !string_status(src)) {
         return;
     }
-    char* buffer = string_data(dst);
-    const size_t buffer_size = string_size(dst);
+    string_t temp = *dst;
     *dst = *src;
-    src->size = buffer_size;
-    src->content = buffer;
+    *src = temp;
 }
 /**
  * @brief Swap all content case from a string container.
  * 
  * @param self String container content to be swapped.
  */
-void string_swap_case(string self) {
+void string_swap_case(string_t* const self) {
     if (!string_status(self)) {
         return;
     }
@@ -815,7 +846,7 @@ void string_swap_case(string self) {
  * 
  * @param self String container to be affected.
  */
-void string_title(string self) {
+void string_title(string_t* const self) {
     if (!string_status(self)) {
         return;
     }
@@ -834,7 +865,7 @@ void string_title(string self) {
  * @param self String container which will be trimmed.
  * @param remove Character to be removed.
  */
-void string_trim(string self, const char remove) {
+void string_trim(string_t* const self, const char remove) {
     if (!string_status(self) || !remove) {
         return;
     }
@@ -847,7 +878,7 @@ void string_trim(string self, const char remove) {
  * @param self String container whose repeated characters will be removed.
  * @param remove Character to be removed how many times found in a continuous way.
  */
-void string_trim_left(string self, const char remove) {
+void string_trim_left(string_t* const self, const char remove) {
     if (!string_status(self) || !remove) {
         return;
     }
@@ -865,13 +896,13 @@ void string_trim_left(string self, const char remove) {
  * @param self String container whose repeated characters will be removed.
  * @param remove Character to be removed how many times found in a continuous way.
  */
-void string_trim_right(string self, const char remove) {
+void string_trim_right(string_t* const self, const char remove) {
     if (!string_status(self) || !remove) {
         return;
     }
     const size_t self_length = string_length_array(self);
     size_t i = self_length;
-    for (; i >= 0; --i) {
+    for (; i > 0; --i) {
         if (string_at(self, i) != remove && string_at(self, i - 1) != remove) {
             break;
         }
@@ -883,7 +914,7 @@ void string_trim_right(string self, const char remove) {
  * 
  * @param self String container content to be capitalize.
  */
-void string_upper_case(string self) {
+void string_upper_case(string_t* const self) {
     if (!string_status(self)) {
         return;
     }
@@ -900,8 +931,8 @@ void string_upper_case(string self) {
 /*
  * Check if a string container is suitable to be searched.
  */
-static bool string_searchable(string self, const char* str, size_t start) {
-    return !string_status(self) || !str ||(strlen(str) < 1) || (start > string_length(self)) ? false : true;
+static bool string_searchable(string_t* const self, const char* const str, const size_t start) {
+    return !string_status(self) || !str ||(char_length(str) < 1) || (start > string_length(self)) ? false : true;
 }
 /**
  * @brief Count how many times a given string is found in a string container.
@@ -910,13 +941,13 @@ static bool string_searchable(string self, const char* str, size_t start) {
  * @param start Start position to get content from.
  * @param end End position to get content from.
  */
-size_t string_count(string self, const char* str, size_t start, size_t end) {
+size_t string_count(string_t* const self, const char* const str, const size_t start, const size_t end) {
     if (!string_searchable(self, str, start) || end >= string_length(self)) {
         return 0;
     }
     size_t counter = 0;
     size_t i = start;
-    if (strlen(str) == 1) {
+    if (char_length(str) == 1) {
         for (; i <= end; ++i) {
             if (string_at(self, i) == str[0]) {
                 counter++;
@@ -924,7 +955,7 @@ size_t string_count(string self, const char* str, size_t start, size_t end) {
         }
     }
     else {
-        const size_t str_len = strlen(str);
+        const size_t str_len = char_length(str);
         size_t j = 0;
         for (; i <= end; ++i) {
             if (string_at(self, i) == str[j]) {
@@ -948,11 +979,11 @@ size_t string_count(string self, const char* str, size_t start, size_t end) {
  * 
  * @return True if self ends with str. False otherwise.
  */
-bool string_end_with(string self, const char* str, size_t start, size_t end) {
+bool string_end_with(string_t* const self, const char* const str, const size_t start, const size_t end) {
     if (!string_status(self) || !str) {
         return false;
     }
-    if (strlen(str) == 1) {
+    if (char_length(str) == 1) {
         if (string_at(self, string_length_array(self)) == str[0]) {
             return true;
         }
@@ -981,11 +1012,11 @@ bool string_end_with(string self, const char* str, size_t start, size_t end) {
  *
  * @return Return first str match in self.
  */
-size_t string_find(string self, const char* str, size_t start) {
+size_t string_find(string_t* const self, const char* const str, const size_t start) {
     if (!string_searchable(self, str, start)) {
         return 0;
     }
-    const size_t str_length = strlen(str);
+    const size_t str_length = char_length(str);
     size_t pos_start = 0;
     size_t i = start;
     size_t j = 0;
@@ -1022,7 +1053,7 @@ size_t string_find(string self, const char* str, size_t start) {
  *
  * @return Return a pointer to chr at first str match.
  */
-char* string_find_array(string self, const char* str, size_t start)
+char* string_find_array(string_t* const self, const char* const str, const size_t start)
 {
     if (!string_searchable(self, str, start)) {
         return NULL;
@@ -1035,7 +1066,7 @@ char* string_find_array(string self, const char* str, size_t start)
         }
         return NULL;
     }
-    const size_t buffer_len = strlen(buffer);
+    const size_t buffer_len = char_length(buffer);
     const size_t size = buffer_len + 1;
     char* str_final = malloc(size);
     if (!str_final) {
@@ -1044,8 +1075,8 @@ char* string_find_array(string self, const char* str, size_t start)
         }
         return NULL;
     }
-    memset(str_final, '\0', size);
-    strncpy(str_final, buffer, buffer_len);
+    char_clear(str_final, size);
+    char_copy(str_final, buffer, buffer_len);
     if (substr){
         free(substr);
     }
@@ -1060,14 +1091,14 @@ char* string_find_array(string self, const char* str, size_t start)
  *
  * @return Return last str match in self.
  */
-size_t string_rfind(string self, const char* str, size_t start)
+size_t string_rfind(string_t* const self, const char* const str, const size_t start)
 {
     if (!string_searchable(self, str, start)) {
         return 0;
     }
     size_t pos_start = 0;
     size_t i = string_length_array(self);
-    const size_t j_start = (strlen(str) - 1);
+    const size_t j_start = (char_length(str) - 1);
     size_t j = j_start;
     size_t end = (start - 1);
     if (end > i) {
@@ -1102,7 +1133,7 @@ size_t string_rfind(string self, const char* str, size_t start)
  *
  * @return Return a pointer to chr at last str match.
  */
-char* string_rfind_array(string self, const char* str, size_t start)
+char* string_rfind_array(string_t* const self, const char* const str, const size_t start)
 {
     if (!string_searchable(self, str, start)) {
         return NULL;
@@ -1113,13 +1144,13 @@ char* string_rfind_array(string self, const char* str, size_t start)
 /*
  * Search algorithm to find a specific character inside a string container.
  */
-static size_t string_search_of(string self, const char* str, size_t pos, int at, int search_of_type)
+static size_t string_search_of(string_t* const self, const char* str, const size_t pos, const int at, const int search_of_type)
 {
-    if (!string_status(self) || !str || (pos < 0) || (at < 0)) {
+    if (!string_status(self) || !str || pos > string_length_array(self) || at < 0) {
         return 0;
     }
     size_t match = 0;
-    if (strlen(str) == 1) {
+    if (char_length(str) == 1) {
         match = !search_of_type ? string_find(self, (void*)&str[0], pos) : string_rfind(self, (void*)&str[0], pos);
         return match;
     }
@@ -1127,7 +1158,8 @@ static size_t string_search_of(string self, const char* str, size_t pos, int at,
         char buffer[2] = "\0";
         size_t pos_start = 0;
         match = string_length_array(self);
-        for (size_t i = 0; i < strlen(str); ++i) {
+        const size_t str_length = char_length(str);
+        for (size_t i = 0; i < str_length; ++i) {
             pos_start = !search_of_type ? string_find(self, (void*)&str[i], pos) : string_rfind(self, (void*)&str[i], pos);
             if (pos_start < match) {
                 buffer[0] = str[i];
@@ -1136,7 +1168,7 @@ static size_t string_search_of(string self, const char* str, size_t pos, int at,
         }
     }
     else {
-        match = !search_of_type ? string_find(self, (void*)&str[(at - 1)], pos) : string_rfind(self, (void*)&str[(at - 1)], pos);
+        match = !search_of_type ? string_find(self, (void*)&str[at - 1], pos) : string_rfind(self, (void*)&str[at - 1], pos);
     }
     return match;
 }
@@ -1150,7 +1182,7 @@ static size_t string_search_of(string self, const char* str, size_t pos, int at,
  *
  * @return Return first str match in self.
  */
-size_t string_find_first_of(string self, const char* str, size_t pos, int at) {
+size_t string_find_first_of(string_t* const self, const char* const str, const size_t pos, const int at) {
     return string_search_of(self, str, pos, at, 0);
 }
 
@@ -1164,20 +1196,20 @@ size_t string_find_first_of(string self, const char* str, size_t pos, int at) {
  *
  * @return Return last str match in self.
  */
-size_t string_find_last_of(string self, const char* str, size_t pos, int at) {
+size_t string_find_last_of(string_t* const self, const char* const str, const size_t pos, const int at) {
     return string_search_of(self, str, pos, at, 1);
 }
 /*
  * Search algorithm to find a non-specific character inside a string container.
  */
-static size_t string_search_not_of(string self, const char* str, size_t pos, int search_type)
+static size_t string_search_not_of(string_t* const self, const char* const str, const size_t pos, const int search_type)
 {
-    if (!string_status(self) || !str || (pos < 0)) {
+    if (!string_status(self) || !str || pos > string_length_array(self)) {
         return 0;
     }
     size_t match = -1;
     int c = 0;
-    for (size_t i = !search_type ? 0 : string_length_array(self); !search_type ? i < string_length(self) : i >= 0; !search_type ? ++i : --i) {
+    for (size_t i = !search_type ? 0 : string_length_array(self); !search_type ? i < string_length(self) : i > 0; !search_type ? ++i : --i) {
         c = (uint8_t)string_at(self, i);
         if (!search_type ? !strchr(str, c) : !strrchr(str, c)) {
             match = i;
@@ -1195,7 +1227,7 @@ static size_t string_search_not_of(string self, const char* str, size_t pos, int
  *
  * @return Return first non str match in self.
  */
-size_t string_find_first_not_of(string self, const char* str, size_t pos) {
+size_t string_find_first_not_of(string_t* const self, const char* const str, const size_t pos) {
     return string_search_not_of(self, str, pos, 0);
 }
 /**
@@ -1207,7 +1239,7 @@ size_t string_find_first_not_of(string self, const char* str, size_t pos) {
  *
  * @return Return last non str match in self.
  */
-size_t string_find_last_not_of(string self, const char* str, size_t pos) {
+size_t string_find_last_not_of(string_t* const self, const char* const str, const size_t pos) {
     return string_search_not_of(self, str, pos, 1);
 }
 /**
@@ -1218,7 +1250,7 @@ size_t string_find_last_not_of(string self, const char* str, size_t pos) {
  * 
  * @return Return true if str is found in self. False otherwise.
  */
-bool string_includes(string self, const char* str) {
+bool string_includes(string_t* const self, const char* const str) {
     if (!string_status(self) || !str) {
         return false;
     }
@@ -1232,18 +1264,18 @@ bool string_includes(string self, const char* str) {
  * 
  * @return True if self starts with str. False otherwise.
  */
-bool string_start_with(string self, const char* str, size_t start) {
+bool string_start_with(string_t* const self, const char* const str, const size_t start) {
     if (!string_status(self) || !str) {
         return false;
     }
-    if (strlen(str) == 1) {
+    if (char_length(str) == 1) {
         if (string_at(self, 0) == str[0]) {
             return true;
         }
     }
     else {
         size_t j = 0;
-        const size_t end = (strlen(str) + start);
+        const size_t end = char_length(str) + start;
         bool match = false;
         for (size_t i = start; i < end; ++i) {
             if (string_at(self, i) == str[j++]) {
