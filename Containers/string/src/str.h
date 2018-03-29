@@ -32,7 +32,6 @@ typedef struct _internal_string string_t;
 ///////////
 // Basic //
 ///////////
-void        string_assign(string_t* const self, const char* const string);
 string_t*   string_init(const char* const str, const size_t size);
 void        string_destroy(string_t* const self);
 ////////////
@@ -49,19 +48,20 @@ void        string_to_array(string_t* const self, char* const array, const size_
 bool        string_empty(string_t* const self);
 size_t      string_length(string_t* const self);
 void        string_reserve(string_t* const self, const size_t size);
+void        string_resize(string_t* const self, const size_t size);
 void        string_shrink_to_fit(string_t* const self);
 size_t      string_size(string_t* const self);
 /////////////////
 // Operations //
 ////////////////
 void        string_append(string_t* const self, const char* string);
+void        string_assign(string_t* const self, const char* const string);
 void        string_capitalize(string_t* const self);
 void        string_clear(string_t* const self);
 string_t*   string_copy(string_t* dst, string_t* const src);
 void        string_erase(string_t* const self, const size_t start, const size_t end);
 void        string_expand_tabs(string_t* const self, const size_t tab_size);
 void        string_insert(string_t* const self, const char* const str, const size_t pos);
-bool        string_is_equal(string_t* const str1, string_t* const str2);
 void        string_join(string_t* const dst, string_t* const src);
 void        string_justified(string_t* const self, const size_t width, const char fill);
 void        string_justified_left(string_t* const self, const size_t width, const char fill);
@@ -69,12 +69,11 @@ void        string_justified_right(string_t* const self, const size_t width, con
 void        string_lower_case(string_t* const self);
 char        string_max_char(string_t* const self, const size_t start, const size_t end);
 char        string_min_char(string_t* const self, const size_t start, const size_t end);
-string_t*   string_move(string_t* const dst, string_t* const src);
+string_t*   string_move(string_t* dst, string_t* src);
 void        string_pop_back(string_t* const self);
 void        string_push_back(string_t* const self, const char c);
 void        string_repeat(string_t* const self, const size_t repetitions);
 void        string_replace(string_t* const self, const char* const string, const size_t pos, int count);
-void        string_resize(string_t* const self, const size_t size);
 string_t*   string_slice(string_t* const self, const size_t start, const size_t end);
 char*       string_slice_array(string_t* const self, const size_t start, const size_t end);
 void        string_swap(string_t* const dst, string_t* const src);

@@ -93,7 +93,7 @@ struct _internal_string {
     char* content;
     size_t size;
 };
-/*
+/**
  * Check if a string and its content is not null.
  */
 static bool string_status(string_t* const self) {
@@ -102,22 +102,6 @@ static bool string_status(string_t* const self) {
 ///////////
 // Basic //
 ///////////
-/**
- * @brief Assign a new content to a string.
- *
- * @param self The string that will get new content.
- * @param str The new content to be assigned.
- *
- */
-void string_assign(string_t* const self, const char* const str) {
-    if (!self) {
-        return;
-    }
-    if (string_data(self)) {
-        string_clear(self);
-    }
-    string_append(self, str);
-}
 /**
  * @brief Initialize a new string container.
  *
@@ -222,8 +206,9 @@ char string_front(string_t* const self) {
 /**
  * @brief Copy a string container content to a pointer to char.
  *
- * @param self String container whose content will be copied.
- * @param array Pointer to char which will recieve the copy from a string container.
+ * @param self          String container whose content will be copied.
+ * @param array         Pointer to char which will recieve the copy from a string container.
+ * @param array_size    Pointer to char size that will hold a vector container content.
  */
 void string_to_array(string_t* const self, char* const array, const size_t array_size) {
     if (!string_status(self)) {
@@ -280,6 +265,30 @@ void string_reserve(string_t* const self, const size_t size) {
     }
 }
 /**
+ * @brief Resize current string character length in a string container.
+ *
+ * @param self String container that will be changed.
+ * @param size New size that will be use in a string container.
+ */
+void string_resize(string_t* const self, const size_t size) {
+    if (!self || !size) {
+        return;
+    }
+    const size_t count = size - string_capacity(self);
+    if (size > string_capacity(self)) {
+        string_reserve(self, size);
+        const size_t end = string_length_array(self);
+        char c = string_at(self, end);
+        for (size_t i = 0; i < count; ++i) {
+            self->content[end + i] = c;
+        }
+    }
+    else {
+        const size_t start = string_capacity(self) - (string_length(self) - size);
+        string_erase(self, start, (string_capacity(self) - 1));
+    }
+}
+/**
  * @brief Shrink a string container to fit just the characters and null terminator in it.
  *
  * @param self String container to shrink size.
@@ -290,8 +299,7 @@ void string_shrink_to_fit(string_t* const self) {
     }
     const size_t self_length = string_length(self);
     if (self_length < self->size) {
-        const size_t size = string_size(self) - (self_length + 1);
-        self->size -= size;
+        self->size -= string_size(self) - (self_length + 1);
         char* temp = realloc(string_data(self), string_size(self));
         if (!temp) {
             return;
@@ -338,6 +346,21 @@ void string_append(string_t* const self, const char* str) {
     }
 }
 /**
+ * @brief Assign a new content to a string.
+ *
+ * @param self The string that will get new content.
+ * @param str The new content to be assigned.
+ */
+void string_assign(string_t* const self, const char* const str) {
+    if (!self) {
+        return;
+    }
+    if (string_data(self)) {
+        string_clear(self);
+    }
+    string_append(self, str);
+}
+/**
  * @brief Capitalize the first letter from a string container.
  * 
  * @param self String container whose first letter will be change.
@@ -364,6 +387,8 @@ void string_clear(string_t* const self) {
  *
  * @param dst String container that will recieve the copied characters.
  * @param src String container whose characters will be copied.
+ * 
+ * @return Return dst containing a copy of all elements in src.
  */
 string_t* string_copy(string_t* dst, string_t* const src) {
     if (!string_status(src)) {
@@ -487,18 +512,6 @@ void string_insert(string_t* const self, const char* const str, const size_t pos
         string_push_back(self, buffer[buffer_it++]);
     }
     free(buffer);
-}
-/**
- * @brief Compare two string container content.
- *
- * @param str1 String container that will be compare.
- * @param str2 String container that will compare.
- */
-bool string_is_equal(string_t* const str1, string_t* const str2) {
-    if (!string_status(str1) || !string_status(str1)) {
-        return false;
-    }
-    return string_data(str1) == string_data(str2);
 }
 /**
  * @brief Join the content of two string containers.
@@ -647,16 +660,13 @@ char string_min_char(string_t* const self, const size_t start, const size_t end)
  * 
  * @return Return dst containing the content that existed in src before been deleted.
  */
-string_t* string_move(string_t* const dst, string_t* const src) {
+string_t* string_move(string_t* dst, string_t* src) {
     if (!string_status(src)) {
         return NULL;
     }
-    string_t* temp = string_copy(dst, src);
-    if (!temp) {
-        return NULL;
-    }
-    string_destroy(src);
-    return temp;
+    dst = src;
+    src = NULL;
+    return dst;
 }
 /**
  * @brief Remove last character in a string container.
@@ -736,30 +746,6 @@ void string_replace(string_t* const self, const char* const str, const size_t po
     }
     else {
         self->content[pos] = str[0];
-    }
-}
-/**
- * @brief Resize current string character length in a string container.
- *
- * @param self String container that will be changed.
- * @param size New size that will be use in a string container.
- */
-void string_resize(string_t* const self, const size_t size) {
-    if (!self || !size) {
-        return;
-    }
-    const size_t count = size - string_capacity(self);
-    if (size > string_capacity(self)) {
-        string_reserve(self, size);
-        const size_t end = string_length_array(self);
-        char c = string_at(self, end);
-        for (size_t i = 0; i < count; ++i) {
-            self->content[end + i] = c;
-        }
-    }
-    else {
-        const size_t start = string_capacity(self) - (string_length(self) - size);
-        string_erase(self, start, (string_capacity(self) - 1));
     }
 }
 /**
@@ -1098,7 +1084,7 @@ size_t string_rfind(string_t* const self, const char* const str, const size_t st
     }
     size_t pos_start = 0;
     size_t i = string_length_array(self);
-    const size_t j_start = (char_length(str) - 1);
+    const size_t j_start = char_length(str) - 1;
     size_t j = j_start;
     size_t end = (start - 1);
     if (end > i) {

@@ -37,7 +37,7 @@ struct _internal_stack {
     stack_node* top;
 };
 
-/**
+/*
  * Check if a stack and it's elements are not null.
  */
 bool stack_status(stack_t* const self) {
@@ -49,8 +49,7 @@ bool stack_status(stack_t* const self) {
 /**
  * @brief Initialize a new stack container.
  * 
- * @param element_size What kind of variables is going to hold the stack container.
- * @param copy Pass a stack container and initialize a new stack with it's elements.
+ * @param elements_size What kind of variables is going to hold the stack container.
  * 
  * @return A new stack container.
  */
@@ -187,16 +186,13 @@ stack_t* stack_copy(stack_t* dst, stack_t* const src) {
  * 
  * @return Return dst containing the content that existed in src before been deleted.
  */
-stack_t* stack_move(stack_t* const dst, stack_t* const src) {
+stack_t* stack_move(stack_t* dst, stack_t*  src) {
     if (!stack_status(src)) {
         return NULL;
     }
-    stack_t* temp = stack_copy(dst, src);
-    if (!temp) {
-        return NULL;
-    }
-    stack_destroy(src);
-    return temp;
+    dst = src;
+    src = NULL;
+    return dst;
 }
 /**
  * @brief Remove the element at the top of a stack container.

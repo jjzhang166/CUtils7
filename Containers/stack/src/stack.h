@@ -48,7 +48,7 @@ size_t      stack_size(stack_t* const self);
 ////////////////
 void        stack_clear(stack_t* const self);
 stack_t*    stack_copy(stack_t* dst, stack_t* const src);
-stack_t*    stack_move(stack_t* const dst, stack_t* const src);
+stack_t*    stack_move(stack_t* dst, stack_t* src);
 void        stack_pop(stack_t* const self);
 void        stack_push(stack_t* const self, void* const element, const size_t element_size);
 void        stack_swap(stack_t* const dst, stack_t* const src);
